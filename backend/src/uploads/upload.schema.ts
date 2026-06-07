@@ -1,0 +1,65 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument, Types } from 'mongoose';
+
+export type UploadDocument = HydratedDocument<Upload>;
+
+export type UploadStatus =
+  | 'preparing'
+  | 'waiting'
+  | 'ready'
+  | 'cancelled';
+
+@Schema({ _id: false })
+export class UploadItem {
+  @Prop({ required: true })
+  article: string;
+
+  @Prop({ required: true })
+  newPrice: number;
+
+  @Prop({ required: true })
+  oldPrice: number;
+
+  @Prop({ required: true, default: true })
+  found: boolean;
+}
+
+const UploadItemSchema = SchemaFactory.createForClass(UploadItem);
+
+@Schema({ timestamps: true })
+export class Upload {
+  @Prop({ required: true })
+  fileName: string;
+
+  @Prop({ required: true })
+  sheetName: string;
+
+  @Prop({ required: true })
+  articleColumn: string;
+
+  @Prop({ required: true })
+  priceColumn: string;
+
+  @Prop({ required: true, enum: ['preparing', 'waiting', 'ready', 'cancelled'] })
+  status: UploadStatus;
+
+  @Prop({ required: true, default: 0 })
+  totalArticles: number;
+
+  @Prop({ required: true, default: 0 })
+  syncedCount: number;
+
+  @Prop({ required: true, default: 0 })
+  notFoundCount: number;
+
+  @Prop({ type: [UploadItemSchema], default: [] })
+  items: UploadItem[];
+
+  @Prop({ type: Types.ObjectId, required: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ required: true })
+  createdByLogin: string;
+}
+
+export const UploadSchema = SchemaFactory.createForClass(Upload);
