@@ -11,7 +11,10 @@ export class HistoryService {
   ) {}
 
   async getMatrix(query?: string) {
-    const filter = query ? { article: { $regex: query, $options: 'i' } } : {};
+    const filter = {
+      action: { $exists: false },
+      ...(query ? { article: { $regex: query, $options: 'i' } } : {}),
+    };
     const rows = await this.historyModel
       .find(filter)
       .sort({ uploadedAt: 1 })

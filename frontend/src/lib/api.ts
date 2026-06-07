@@ -1,4 +1,4 @@
-import type { HistoryResponse, Preview, UploadDetails, UploadListItem, User } from '../types'
+import type { HistoryResponse, Preview, RollbackResponse, UploadDetails, UploadListItem, User } from '../types'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
@@ -40,8 +40,18 @@ export function getUploads(token: string) {
   return api<UploadListItem[]>('/uploads', token)
 }
 
-export function getUpload(token: string, id: string) {
-  return api<UploadDetails>(`/uploads/${id}`, token)
+export function getUpload(
+  token: string,
+  id: string,
+  params: { page?: number; limit?: number; withProductIdOnly?: boolean } = {},
+) {
+  const searchParams = new URLSearchParams()
+  if (params.page) searchParams.set('page', String(params.page))
+  if (params.limit) searchParams.set('limit', String(params.limit))
+  if (params.withProductIdOnly) searchParams.set('withProductIdOnly', 'true')
+  const query = searchParams.toString()
+
+  return api<UploadDetails>(`/uploads/${id}${query ? `?${query}` : ''}`, token)
 }
 
 export function startUpload(token: string, id: string) {
@@ -105,6 +115,10 @@ export function getHistory(token: string, query: string) {
 
 export function getUsers(token: string) {
   return api<Array<{ _id: string; login: string; createdAt: string }>>('/users', token)
+}
+
+export function rollbackExcelPrices(token: string) {
+  return api<RollbackResponse>('/uploads/rollback', token, { method: 'DELETE' })
 }
 
 export function previewUpload(token: string, file: File) {

@@ -31,6 +31,13 @@ export type UploadDetails = UploadListItem & {
   articleColumn: string
   priceColumn: string
   items: UploadItem[]
+  notFoundItems?: UploadItem[]
+  itemPage?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
 }
 
 export type PreviewSheet = {
@@ -47,4 +54,8 @@ export type Preview = {
 export type HistoryResponse = {
   dates: string[]
   rows: Array<Record<string, string | number>>
+}
+
+export type RollbackResponse = {
+  deletedCount: number
 }

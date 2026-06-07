@@ -120,6 +120,7 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
           await this.setItem(uploadId, index, {
             found: false,
             oldPrice: 0,
+            productId: undefined,
             errorMessage: `Product was not found by SKU ${item.article}`,
           });
         } else {
@@ -135,6 +136,7 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
         await this.setItem(uploadId, index, {
           found: false,
           oldPrice: 0,
+          productId: undefined,
           errorMessage: error instanceof Error ? error.message : String(error),
         });
       }
@@ -163,11 +165,15 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
 
     for (let index = 0; index < upload.items.length; index += 1) {
       const item = upload.items[index];
-      if (!item.found || !item.productId || item.synced) {
+      if (!item.found || item.synced) {
         continue;
       }
 
       try {
+        if (!item.productId) {
+          throw new Error(`Product ID is missing for SKU ${item.article}`);
+        }
+
         await this.externalPriceClient.writePrice(item.productId, item.newPrice);
         syncedCount += 1;
 
@@ -210,13 +216,22 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
     index: number,
     patch: Partial<Upload['items'][number]>,
   ) {
-    const update = Object.fromEntries(
+    const set = Object.fromEntries(
       Object.entries(patch)
         .filter(([, value]) => value !== undefined)
         .map(([key, value]) => [`items.${index}.${key}`, value]),
     );
+    const unset = Object.fromEntries(
+      Object.entries(patch)
+        .filter(([, value]) => value === undefined)
+        .map(([key]) => [`items.${index}.${key}`, '']),
+    );
+    const update = {
+      ...(Object.keys(set).length > 0 ? { $set: set } : {}),
+      ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+    };
 
-    await this.uploadModel.findByIdAndUpdate(uploadId, { $set: update }).exec();
+    await this.uploadModel.findByIdAndUpdate(uploadId, update).exec();
   }
 
   private getCurrentPrice(prices?: Record<string, number>) {

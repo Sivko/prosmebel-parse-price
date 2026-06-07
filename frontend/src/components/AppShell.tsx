@@ -19,6 +19,7 @@ export function AppShell({ children, path, user, navigate, logout }: AppShellPro
           <Button className={path === '/' ? 'active' : ''} onPress={() => navigate('/')}>Главная</Button>
           <Button className={path.startsWith('/upload') ? 'active' : ''} onPress={() => navigate('/upload')}>Загрузки</Button>
           <Button className={path.startsWith('/history') ? 'active' : ''} onPress={() => navigate('/history')}>История цен</Button>
+          <Button className={path.startsWith('/rollback') ? 'active' : ''} onPress={() => navigate('/rollback')}>Откат</Button>
           <Button className={path.startsWith('/users') ? 'active' : ''} onPress={() => navigate('/users')}>Пользователи</Button>
         </nav>
         <div className="account">

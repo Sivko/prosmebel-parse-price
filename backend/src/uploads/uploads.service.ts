@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as XLSX from 'xlsx';
+import { PriceHistory, PriceHistoryDocument } from '../history/price-history.schema';
+import { ExternalPriceClient } from './external-price.client';
 import { Upload, UploadDocument, UploadItem } from './upload.schema';
 import { UploadQueueService } from './upload-queue.service';
 
@@ -10,10 +12,33 @@ type ParsedRow = {
   newPrice: number;
 };
 
+type UploadItemsQuery = {
+  page?: string;
+  limit?: string;
+  withProductIdOnly?: boolean;
+};
+
+type UploadDetailsResponse = Omit<Upload, 'items'> & {
+  _id: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+  items: UploadItem[];
+  notFoundItems: UploadItem[];
+  itemPage: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 @Injectable()
 export class UploadsService {
   constructor(
     @InjectModel(Upload.name) private readonly uploadModel: Model<UploadDocument>,
+    @InjectModel(PriceHistory.name)
+    private readonly historyModel: Model<PriceHistoryDocument>,
+    private readonly externalPriceClient: ExternalPriceClient,
     private readonly uploadQueueService: UploadQueueService,
   ) {}
 
@@ -86,7 +111,10 @@ export class UploadsService {
       .exec();
   }
 
-  async getById(id: string) {
+  async getById(
+    id: string,
+    query: UploadItemsQuery = {},
+  ): Promise<UploadDetailsResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException('Upload was not found');
     }
@@ -96,7 +124,27 @@ export class UploadsService {
       throw new NotFoundException('Upload was not found');
     }
 
-    return upload;
+    const page = this.parsePositiveInteger(query.page, 1);
+    const limit = Math.min(this.parsePositiveInteger(query.limit, 20), 100);
+    const items = query.withProductIdOnly
+      ? upload.items.filter((item) => item.productId != null)
+      : upload.items;
+    const total = items.length;
+    const totalPages = Math.max(Math.ceil(total / limit), 1);
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * limit;
+
+    return {
+      ...upload,
+      items: items.slice(start, start + limit),
+      notFoundItems: upload.items.filter((item) => !item.found),
+      itemPage: {
+        page: safePage,
+        limit,
+        total,
+        totalPages,
+      },
+    } as UploadDetailsResponse;
   }
 
   async start(id: string) {
@@ -124,6 +172,20 @@ export class UploadsService {
     this.uploadQueueService.enqueueSync(id);
 
     return upload;
+  }
+
+  async rollbackExcelPrices(user: { userId: string; login: string }) {
+    const result = await this.externalPriceClient.deleteExcelPrices();
+
+    await this.historyModel.create({
+      action: 'rollback-excel-prices',
+      deletedCount: result.deletedCount,
+      createdBy: new Types.ObjectId(user.userId),
+      createdByLogin: user.login,
+      uploadedAt: new Date(),
+    });
+
+    return result;
   }
 
   events(id: string) {
@@ -165,6 +227,11 @@ export class UploadsService {
       .replace(',', '.')
       .replace(/[^\d.]/g, '');
     return Number(normalized);
+  }
+
+  private parsePositiveInteger(value: string | undefined, fallback: number) {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
   }
 
   private createPendingItem(row: ParsedRow): UploadItem {

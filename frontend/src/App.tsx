@@ -5,6 +5,7 @@ import { AppShell } from './components/AppShell'
 import { HomePage } from './pages/HomePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { LoginPage } from './pages/LoginPage'
+import { RollbackPage } from './pages/RollbackPage'
 import { UploadDetailsPage } from './pages/UploadDetailsPage'
 import { UploadsPage } from './pages/UploadsPage'
 import { UsersPage } from './pages/UsersPage'
@@ -43,6 +44,7 @@ export default function App() {
       {path === '/upload' && <UploadsPage token={token} navigate={navigate} />}
       {path.startsWith('/upload/') && <UploadDetailsPage token={token} path={path} />}
       {path.startsWith('/history') && <HistoryPage token={token} path={path} />}
+      {path === '/rollback' && <RollbackPage token={token} />}
       {path === '/users' && <UsersPage token={token} />}
     </AppShell>
   )

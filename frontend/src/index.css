@@ -292,6 +292,33 @@ th {
   color: #9c2d1b;
 }
 
+.success {
+  padding: 12px 14px;
+  border: 1px solid #b8dfce;
+  border-radius: 6px;
+  background: #eef8f5;
+  color: #146c5d;
+}
+
+.rollback-panel {
+  display: grid;
+  gap: 16px;
+  max-width: 760px;
+  padding: 18px;
+  border: 1px solid #dce5e8;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.rollback-panel p {
+  color: #34464f;
+  line-height: 1.55;
+}
+
+.rollback-panel button {
+  justify-self: start;
+}
+
 .info {
   display: grid;
   gap: 4px;
@@ -375,6 +402,27 @@ th {
   background: #146c5d;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-bar ul {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination-bar button {
+  min-width: 38px;
+}
+
 .search {
   display: flex;
   gap: 8px;
@@ -414,5 +462,10 @@ a {
   .setup-grid,
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pagination-bar {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

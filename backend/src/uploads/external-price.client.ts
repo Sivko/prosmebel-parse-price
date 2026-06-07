@@ -6,6 +6,17 @@ type ExternalPriceResponse = {
   prices?: Record<string, number>;
 };
 
+type RawExternalPriceResponse = {
+  productId?: number | string;
+  id?: number | string;
+  ID?: number | string;
+  prices?: Record<string, number>;
+};
+
+type BlankPricesResponse = {
+  deletedCount: number;
+};
+
 @Injectable()
 export class ExternalPriceClient {
   private readonly baseUrl: string;
@@ -36,7 +47,7 @@ export class ExternalPriceClient {
       throw new Error(await this.getErrorMessage(response));
     }
 
-    return response.json() as Promise<ExternalPriceResponse>;
+    return this.normalizeResponse(await response.json());
   }
 
   async writePrice(productId: number, price: number) {
@@ -53,7 +64,23 @@ export class ExternalPriceClient {
       throw new Error(await this.getErrorMessage(response));
     }
 
-    return response.json() as Promise<ExternalPriceResponse>;
+    return this.normalizeResponse(await response.json());
+  }
+
+  async deleteExcelPrices(): Promise<BlankPricesResponse> {
+    const response = await fetch(`${this.baseUrl}/external-price/blank`, {
+      method: 'DELETE',
+      headers: this.headers(),
+    });
+
+    if (!response.ok) {
+      throw new Error(await this.getErrorMessage(response));
+    }
+
+    const data = (await response.json()) as Partial<BlankPricesResponse>;
+    return {
+      deletedCount: Number(data.deletedCount ?? 0),
+    };
   }
 
   private headers() {
@@ -74,5 +101,19 @@ export class ExternalPriceClient {
     } catch {
       return text;
     }
+  }
+
+  private normalizeResponse(response: unknown): ExternalPriceResponse {
+    const data = response as RawExternalPriceResponse;
+    const productId = Number(data.productId ?? data.id ?? data.ID);
+
+    if (!Number.isFinite(productId)) {
+      throw new Error('External price API response does not contain productId');
+    }
+
+    return {
+      productId,
+      prices: data.prices,
+    };
   }
 }

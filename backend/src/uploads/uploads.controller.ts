@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
+  Query,
   Sse,
   UploadedFile,
   UseGuards,
@@ -43,9 +45,23 @@ export class UploadsController {
     return this.uploadsService.list();
   }
 
+  @Delete('rollback')
+  rollbackExcelPrices(@CurrentUser() user: CurrentUserPayload) {
+    return this.uploadsService.rollbackExcelPrices(user);
+  }
+
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.uploadsService.getById(id);
+  getById(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('withProductIdOnly') withProductIdOnly?: string,
+  ) {
+    return this.uploadsService.getById(id, {
+      page,
+      limit,
+      withProductIdOnly: withProductIdOnly === 'true',
+    });
   }
 
   @Post(':id/start')
