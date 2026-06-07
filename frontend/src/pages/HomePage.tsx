@@ -108,9 +108,9 @@ export function HomePage({ token, navigate }: { token: string; navigate: (to: st
         <>
           <section className="table-section">
             <h2>Предпросмотр выбранных колонок</h2>
-            <DataTable>
+            <DataTable label="Предпросмотр выбранных колонок">
               <Table.Header>
-                <Table.Column id="article">Артикул</Table.Column>
+                <Table.Column id="article" isRowHeader>Артикул</Table.Column>
                 <Table.Column id="price">Цена</Table.Column>
               </Table.Header>
               <Table.Body>
@@ -126,9 +126,11 @@ export function HomePage({ token, navigate }: { token: string; navigate: (to: st
 
           <section className="table-section">
             <h2>Предпросмотр листа</h2>
-            <DataTable>
+            <DataTable label="Предпросмотр листа">
               <Table.Header>
-                {sheet.columns.map((column) => <Table.Column id={column} key={column}>{column}</Table.Column>)}
+                {sheet.columns.map((column, index) => (
+                  <Table.Column id={column} key={column} isRowHeader={index === 0}>{column}</Table.Column>
+                ))}
               </Table.Header>
               <Table.Body>
                 {sheet.examples.map((row, index) => (

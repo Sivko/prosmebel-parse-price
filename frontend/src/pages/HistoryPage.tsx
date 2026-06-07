@@ -32,9 +32,9 @@ export function HistoryPage({ token, path }: { token: string; path: string }) {
       {historyQuery.isLoading && <div>Загрузка...</div>}
       {historyQuery.error && <div className="error">{historyQuery.error.message}</div>}
       {historyQuery.data && (
-        <DataTable>
+        <DataTable label="История изменений цен">
           <Table.Header>
-            <Table.Column id="article">Артикулы</Table.Column>
+            <Table.Column id="article" isRowHeader>Артикулы</Table.Column>
             {historyQuery.data.dates.map((date) => <Table.Column id={date} key={date}>{date}</Table.Column>)}
           </Table.Header>
           <Table.Body>

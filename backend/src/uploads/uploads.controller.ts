@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Sse,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -50,5 +51,10 @@ export class UploadsController {
   @Post(':id/start')
   start(@Param('id') id: string) {
     return this.uploadsService.start(id);
+  }
+
+  @Sse(':id/events')
+  events(@Param('id') id: string) {
+    return this.uploadsService.events(id);
   }
 }

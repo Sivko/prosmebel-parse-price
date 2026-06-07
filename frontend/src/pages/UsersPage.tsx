@@ -16,9 +16,9 @@ export function UsersPage({ token }: { token: string }) {
       {usersQuery.isLoading && <div>Загрузка...</div>}
       {usersQuery.error && <div className="error">{usersQuery.error.message}</div>}
       {usersQuery.data && (
-        <DataTable>
+        <DataTable label="Пользователи">
           <Table.Header>
-            <Table.Column id="login">Логин</Table.Column>
+            <Table.Column id="login" isRowHeader>Логин</Table.Column>
             <Table.Column id="createdAt">Дата создания</Table.Column>
           </Table.Header>
           <Table.Body>

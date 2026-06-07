@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as XLSX from 'xlsx';
-import { PriceHistory, PriceHistoryDocument } from '../history/price-history.schema';
 import { Upload, UploadDocument, UploadItem } from './upload.schema';
+import { UploadQueueService } from './upload-queue.service';
 
 type ParsedRow = {
   article: string;
@@ -14,8 +14,7 @@ type ParsedRow = {
 export class UploadsService {
   constructor(
     @InjectModel(Upload.name) private readonly uploadModel: Model<UploadDocument>,
-    @InjectModel(PriceHistory.name)
-    private readonly historyModel: Model<PriceHistoryDocument>,
+    private readonly uploadQueueService: UploadQueueService,
   ) {}
 
   getWorkbookPreview(file: Express.Multer.File) {
@@ -57,36 +56,23 @@ export class UploadsService {
       throw new BadRequestException('No records found in selected columns');
     }
 
-    const items = await Promise.all(
-      parsedRows.map(async (row, index) => this.createFakeItem(row, index)),
-    );
-    const notFoundCount = items.filter((item) => !item.found).length;
-    const syncedCount = items.length - notFoundCount;
+    const items = parsedRows.map((row) => this.createPendingItem(row));
 
     const upload = await this.uploadModel.create({
       fileName: file.originalname,
       sheetName: dto.sheetName,
       articleColumn: dto.articleColumn,
       priceColumn: dto.priceColumn,
-      status: 'waiting',
+      status: 'preparing',
       totalArticles: items.length,
-      syncedCount,
-      notFoundCount,
+      syncedCount: 0,
+      notFoundCount: 0,
       items,
       createdBy: new Types.ObjectId(user.userId),
       createdByLogin: user.login,
     });
 
-    await this.historyModel.insertMany(
-      items
-        .filter((item) => item.found)
-        .map((item) => ({
-          article: item.article,
-          price: item.newPrice,
-          uploadId: upload._id,
-          uploadedAt: new Date(),
-        })),
-    );
+    this.uploadQueueService.enqueuePrepare(upload._id.toString());
 
     return upload;
   }
@@ -114,16 +100,38 @@ export class UploadsService {
   }
 
   async start(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Upload was not found');
+    }
+
+    const currentUpload = await this.uploadModel.findById(id).lean().exec();
+    if (!currentUpload) {
+      throw new NotFoundException('Upload was not found');
+    }
+
+    if (currentUpload.status !== 'waiting' && currentUpload.status !== 'failed') {
+      throw new BadRequestException('Upload is not ready to start');
+    }
+
     const upload = await this.uploadModel
-      .findByIdAndUpdate(id, { status: 'ready' }, { new: true })
+      .findByIdAndUpdate(id, { status: 'syncing' }, { new: true })
       .lean()
       .exec();
-
     if (!upload) {
       throw new NotFoundException('Upload was not found');
     }
 
+    this.uploadQueueService.enqueueSync(id);
+
     return upload;
+  }
+
+  events(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Upload was not found');
+    }
+
+    return this.uploadQueueService.eventsForUpload(id);
   }
 
   private readWorkbook(file: Express.Multer.File) {
@@ -159,15 +167,13 @@ export class UploadsService {
     return Number(normalized);
   }
 
-  private async createFakeItem(row: ParsedRow, index: number): Promise<UploadItem> {
-    const found = index % 7 !== 0;
-    const oldPrice = found ? Math.max(0, Math.round(row.newPrice * 0.92)) : 0;
-
+  private createPendingItem(row: ParsedRow): UploadItem {
     return {
       article: row.article,
       newPrice: row.newPrice,
-      oldPrice,
-      found,
+      oldPrice: 0,
+      found: false,
+      synced: false,
     };
   }
 }

@@ -17,9 +17,9 @@ export function UploadsPage({ token, navigate }: { token: string; navigate: (to:
       {uploadsQuery.isLoading && <div>Загрузка...</div>}
       {uploadsQuery.error && <div className="error">{uploadsQuery.error.message}</div>}
       {uploadsQuery.data && (
-        <DataTable>
+        <DataTable label="Загрузки">
           <Table.Header>
-            <Table.Column id="date">Дата</Table.Column>
+            <Table.Column id="date" isRowHeader>Дата</Table.Column>
             <Table.Column id="createdBy">Кто запустил</Table.Column>
             <Table.Column id="articles">Кол-во артикулов</Table.Column>
             <Table.Column id="file">Файл</Table.Column>

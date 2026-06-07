@@ -6,7 +6,9 @@ export type UploadDocument = HydratedDocument<Upload>;
 export type UploadStatus =
   | 'preparing'
   | 'waiting'
+  | 'syncing'
   | 'ready'
+  | 'failed'
   | 'cancelled';
 
 @Schema({ _id: false })
@@ -22,6 +24,15 @@ export class UploadItem {
 
   @Prop({ required: true, default: true })
   found: boolean;
+
+  @Prop()
+  productId?: number;
+
+  @Prop()
+  errorMessage?: string;
+
+  @Prop({ required: true, default: false })
+  synced: boolean;
 }
 
 const UploadItemSchema = SchemaFactory.createForClass(UploadItem);
@@ -40,7 +51,10 @@ export class Upload {
   @Prop({ required: true })
   priceColumn: string;
 
-  @Prop({ required: true, enum: ['preparing', 'waiting', 'ready', 'cancelled'] })
+  @Prop({
+    required: true,
+    enum: ['preparing', 'waiting', 'syncing', 'ready', 'failed', 'cancelled'],
+  })
   status: UploadStatus;
 
   @Prop({ required: true, default: 0 })

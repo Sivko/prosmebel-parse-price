@@ -48,6 +48,57 @@ export function startUpload(token: string, id: string) {
   return api<UploadDetails>(`/uploads/${id}/start`, token, { method: 'POST' })
 }
 
+export function subscribeUpload(
+  token: string,
+  id: string,
+  onUpload: (upload: UploadDetails) => void,
+  onError?: (error: Error) => void,
+) {
+  const controller = new AbortController()
+
+  void fetch(`${API_URL}/uploads/${id}/events`, {
+    headers: authHeaders(token),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok || !response.body) {
+        throw new Error(await response.text() || 'Ошибка подключения к прогрессу')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (!controller.signal.aborted) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const messages = buffer.split(/\n\n/)
+        buffer = messages.pop() ?? ''
+
+        for (const message of messages) {
+          const data = message
+            .split('\n')
+            .filter((line) => line.startsWith('data:'))
+            .map((line) => line.slice(5).trim())
+            .join('')
+
+          if (data) {
+            onUpload(JSON.parse(data) as UploadDetails)
+          }
+        }
+      }
+    })
+    .catch((error: Error) => {
+      if (!controller.signal.aborted) {
+        onError?.(error)
+      }
+    })
+
+  return () => controller.abort()
+}
+
 export function getHistory(token: string, query: string) {
   return api<HistoryResponse>(`/history${query ? `?q=${encodeURIComponent(query)}` : ''}`, token)
 }

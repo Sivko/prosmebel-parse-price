@@ -3,7 +3,7 @@ export type User = {
   login: string
 }
 
-export type UploadStatus = 'preparing' | 'waiting' | 'ready' | 'cancelled'
+export type UploadStatus = 'preparing' | 'waiting' | 'syncing' | 'ready' | 'failed' | 'cancelled'
 
 export type UploadListItem = {
   _id: string
@@ -21,6 +21,9 @@ export type UploadItem = {
   oldPrice: number
   newPrice: number
   found: boolean
+  productId?: number
+  errorMessage?: string
+  synced: boolean
 }
 
 export type UploadDetails = UploadListItem & {
