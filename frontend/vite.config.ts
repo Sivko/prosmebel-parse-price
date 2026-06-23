@@ -8,5 +8,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     allowedHosts: ['excel-parser.limpopo113.ru'],
+    proxy: {
+      '/api': {
+        target: process.env.VITE_DEV_API_PROXY_TARGET ?? 'http://localhost:3000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
 })

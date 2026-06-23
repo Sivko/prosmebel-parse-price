@@ -1,6 +1,6 @@
 import type { HistoryResponse, Preview, RollbackResponse, UploadDetails, UploadListItem, User } from '../types'
 
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+export const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
 export function authHeaders(token: string) {
   return {
