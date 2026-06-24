@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button, Table } from '@heroui/react'
 import { createUpload, previewUpload } from '../lib/api'
+import { PRICE_REGION_CONFIG, PRICE_REGIONS, type PriceRegion } from '../lib/price-region'
 import type { Preview } from '../types'
 import { DataTable } from '../components/DataTable'
 import { InstructionModal } from '../components/InstructionModal'
@@ -13,6 +14,7 @@ export function HomePage({ token, navigate }: { token: string; navigate: (to: st
   const [sheetName, setSheetName] = useState('')
   const [articleColumn, setArticleColumn] = useState('')
   const [priceColumn, setPriceColumn] = useState('')
+  const [region, setRegion] = useState<PriceRegion>('MSK')
   const [isDragging, setIsDragging] = useState(false)
   const [instructionOpen, setInstructionOpen] = useState(false)
 
@@ -36,7 +38,7 @@ export function HomePage({ token, navigate }: { token: string; navigate: (to: st
   const createMutation = useMutation({
     mutationFn: () => {
       if (!file) throw new Error('Выберите файл')
-      return createUpload(token, { file, sheetName, articleColumn, priceColumn })
+      return createUpload(token, { file, sheetName, articleColumn, priceColumn, region })
     },
     onSuccess: async (upload) => {
       await queryClient.invalidateQueries({ queryKey: ['uploads'] })
@@ -96,6 +98,16 @@ export function HomePage({ token, navigate }: { token: string; navigate: (to: st
             Колонка с итоговой ценой
             <select value={priceColumn} onChange={(event) => setPriceColumn(event.target.value)}>
               {sheet.columns.map((column) => <option key={column}>{column}</option>)}
+            </select>
+          </label>
+          <label>
+            Регион и тип цены
+            <select value={region} onChange={(event) => setRegion(event.target.value as PriceRegion)}>
+              {PRICE_REGIONS.map((item) => (
+                <option key={item} value={item}>
+                  {PRICE_REGION_CONFIG[item].label} (тип {PRICE_REGION_CONFIG[item].priceTypeId})
+                </option>
+              ))}
             </select>
           </label>
           <Button className="primary" onPress={() => createMutation.mutate()} isDisabled={createMutation.isPending}>

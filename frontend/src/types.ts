@@ -5,6 +5,8 @@ export type User = {
 
 export type UploadStatus = 'preparing' | 'waiting' | 'syncing' | 'ready' | 'failed' | 'cancelled'
 
+export type PriceRegion = 'MSK' | 'EKB'
+
 export type UploadListItem = {
   _id: string
   createdAt: string
@@ -14,6 +16,8 @@ export type UploadListItem = {
   status: UploadStatus
   syncedCount: number
   notFoundCount: number
+  region: PriceRegion
+  priceTypeId: number
 }
 
 export type UploadItem = {

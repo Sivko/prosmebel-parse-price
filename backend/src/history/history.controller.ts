@@ -8,7 +8,7 @@ export class HistoryController {
   constructor(private readonly historyService: HistoryService) {}
 
   @Get()
-  list(@Query('q') query?: string) {
-    return this.historyService.getMatrix(query);
+  list(@Query('q') query?: string, @Query('region') region?: string) {
+    return this.historyService.getMatrix(query, region);
   }
 }

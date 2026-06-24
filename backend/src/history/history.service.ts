@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { isPriceRegion } from '../common/price-region';
 import { PriceHistory, PriceHistoryDocument } from './price-history.schema';
 
 @Injectable()
@@ -10,10 +11,11 @@ export class HistoryService {
     private readonly historyModel: Model<PriceHistoryDocument>,
   ) {}
 
-  async getMatrix(query?: string) {
+  async getMatrix(query?: string, region?: string) {
     const filter = {
       action: { $exists: false },
       ...(query ? { article: { $regex: query, $options: 'i' } } : {}),
+      ...(region && isPriceRegion(region) ? { region } : {}),
     };
     const rows = await this.historyModel
       .find(filter)
@@ -28,9 +30,13 @@ export class HistoryService {
 
     rows.forEach((row) => {
       const date = row.uploadedAt.toISOString().slice(0, 10);
-      const articleRow = articleMap.get(row.article) ?? { article: row.article };
+      const rowKey = `${row.region}:${row.article}`;
+      const articleRow = articleMap.get(rowKey) ?? {
+        article: row.article,
+        region: row.region,
+      };
       articleRow[date] = row.price;
-      articleMap.set(row.article, articleRow);
+      articleMap.set(rowKey, articleRow);
     });
 
     return {

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Button, Table } from '@heroui/react'
 import { getUploads } from '../lib/api'
 import { formatDate } from '../lib/format'
+import { getRegionShortLabel } from '../lib/price-region'
 import { DataTable } from '../components/DataTable'
 import { statusLabels } from '../components/statusLabels'
 
@@ -22,6 +23,7 @@ export function UploadsPage({ token, navigate }: { token: string; navigate: (to:
             <Table.Column id="date" isRowHeader>Дата</Table.Column>
             <Table.Column id="createdBy">Кто запустил</Table.Column>
             <Table.Column id="articles">Кол-во артикулов</Table.Column>
+            <Table.Column id="region">Регион</Table.Column>
             <Table.Column id="file">Файл</Table.Column>
             <Table.Column id="status">Статус</Table.Column>
             <Table.Column id="synced">Синхронизировано</Table.Column>
@@ -34,6 +36,7 @@ export function UploadsPage({ token, navigate }: { token: string; navigate: (to:
                 <Table.Cell>{formatDate(upload.createdAt)}</Table.Cell>
                 <Table.Cell>{upload.createdByLogin}</Table.Cell>
                 <Table.Cell>{upload.totalArticles}</Table.Cell>
+                <Table.Cell>{getRegionShortLabel(upload.region)}</Table.Cell>
                 <Table.Cell>{upload.fileName}</Table.Cell>
                 <Table.Cell><span className="status">{statusLabels[upload.status]}</span></Table.Cell>
                 <Table.Cell>{upload.syncedCount}</Table.Cell>

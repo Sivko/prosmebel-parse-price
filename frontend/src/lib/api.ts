@@ -1,4 +1,4 @@
-import type { HistoryResponse, Preview, RollbackResponse, UploadDetails, UploadListItem, User } from '../types'
+import type { HistoryResponse, Preview, PriceRegion, RollbackResponse, UploadDetails, UploadListItem, User } from '../types'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
@@ -109,16 +109,21 @@ export function subscribeUpload(
   return () => controller.abort()
 }
 
-export function getHistory(token: string, query: string) {
-  return api<HistoryResponse>(`/history${query ? `?q=${encodeURIComponent(query)}` : ''}`, token)
+export function getHistory(token: string, query: string, region?: PriceRegion) {
+  const searchParams = new URLSearchParams()
+  if (query) searchParams.set('q', query)
+  if (region) searchParams.set('region', region)
+  const queryString = searchParams.toString()
+
+  return api<HistoryResponse>(`/history${queryString ? `?${queryString}` : ''}`, token)
 }
 
 export function getUsers(token: string) {
   return api<Array<{ _id: string; login: string; createdAt: string }>>('/users', token)
 }
 
-export function rollbackExcelPrices(token: string) {
-  return api<RollbackResponse>('/uploads/rollback', token, { method: 'DELETE' })
+export function rollbackExcelPrices(token: string, region: PriceRegion) {
+  return api<RollbackResponse>(`/uploads/rollback?region=${region}`, token, { method: 'DELETE' })
 }
 
 export function previewUpload(token: string, file: File) {
@@ -138,6 +143,7 @@ export function createUpload(
     sheetName: string
     articleColumn: string
     priceColumn: string
+    region: PriceRegion
   },
 ) {
   const formData = new FormData()
@@ -145,6 +151,7 @@ export function createUpload(
   formData.append('sheetName', params.sheetName)
   formData.append('articleColumn', params.articleColumn)
   formData.append('priceColumn', params.priceColumn)
+  formData.append('region', params.region)
 
   return api<UploadDetails>('/uploads', token, {
     method: 'POST',

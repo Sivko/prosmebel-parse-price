@@ -10,6 +10,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -18,6 +19,7 @@ import type { CurrentUserPayload } from '../common/current-user';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateUploadDto } from './uploads.dto';
 import { UploadsService } from './uploads.service';
+import { isPriceRegion } from '../common/price-region';
 
 @Controller('uploads')
 @UseGuards(JwtAuthGuard)
@@ -46,8 +48,15 @@ export class UploadsController {
   }
 
   @Delete('rollback')
-  rollbackExcelPrices(@CurrentUser() user: CurrentUserPayload) {
-    return this.uploadsService.rollbackExcelPrices(user);
+  rollbackExcelPrices(
+    @Query('region') region: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    if (!isPriceRegion(region)) {
+      throw new BadRequestException('Region must be MSK or EKB');
+    }
+
+    return this.uploadsService.rollbackExcelPrices(user, region);
   }
 
   @Get(':id')

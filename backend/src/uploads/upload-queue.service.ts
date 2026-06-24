@@ -113,7 +113,10 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
       const item = upload.items[index];
 
       try {
-        const product = await this.externalPriceClient.getBySku(item.article);
+        const product = await this.externalPriceClient.getBySku(
+          item.article,
+          upload.region,
+        );
 
         if (!product) {
           notFoundCount += 1;
@@ -127,7 +130,7 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
           await this.setItem(uploadId, index, {
             found: true,
             productId: product.productId,
-            oldPrice: this.getCurrentPrice(product.prices),
+            oldPrice: this.getCurrentPrice(product.prices, upload.priceTypeId),
             errorMessage: undefined,
           });
         }
@@ -174,7 +177,11 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
           throw new Error(`Product ID is missing for SKU ${item.article}`);
         }
 
-        await this.externalPriceClient.writePrice(item.productId, item.newPrice);
+        await this.externalPriceClient.writePrice(
+          item.productId,
+          item.newPrice,
+          upload.region,
+        );
         syncedCount += 1;
 
         await this.setItem(uploadId, index, {
@@ -184,6 +191,8 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
         await this.historyModel.create({
           article: item.article,
           price: item.newPrice,
+          region: upload.region,
+          priceTypeId: upload.priceTypeId,
           uploadId: new Types.ObjectId(uploadId),
           uploadedAt: new Date(),
         });
@@ -234,8 +243,15 @@ export class UploadQueueService implements OnModuleDestroy, OnModuleInit {
     await this.uploadModel.findByIdAndUpdate(uploadId, update).exec();
   }
 
-  private getCurrentPrice(prices?: Record<string, number>) {
-    return prices?.['17'] ?? prices?.base ?? 0;
+  private getCurrentPrice(prices?: Record<string, number>, priceTypeId?: number) {
+    if (priceTypeId != null) {
+      const excelPrice = prices?.[String(priceTypeId)];
+      if (excelPrice != null) {
+        return excelPrice;
+      }
+    }
+
+    return prices?.base ?? 0;
   }
 
   private async emitUpload(uploadId: string) {

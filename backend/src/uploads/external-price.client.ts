@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  PriceRegion,
+  PRICE_REGION_CONFIG,
+} from '../common/price-region';
 
 type ExternalPriceResponse = {
   productId: number;
@@ -19,21 +23,33 @@ type BlankPricesResponse = {
 
 @Injectable()
 export class ExternalPriceClient {
-  private readonly baseUrl: string;
+  private readonly baseUrls: Record<PriceRegion, string>;
   private readonly token: string;
 
   constructor(config: ConfigService) {
-    this.baseUrl = (
-      config.get<string>('EXTERNAL_PRICE_API_URL') ?? 'https://prosmebel.ru'
-    ).replace(/\/$/, '');
+    const mskDefault =
+      config.get<string>('EXTERNAL_PRICE_API_URL_MSK') ??
+      config.get<string>('EXTERNAL_PRICE_API_URL') ??
+      PRICE_REGION_CONFIG.MSK.defaultBaseUrl;
+    const ekbDefault =
+      config.get<string>('EXTERNAL_PRICE_API_URL_EKB') ??
+      PRICE_REGION_CONFIG.EKB.defaultBaseUrl;
+
+    this.baseUrls = {
+      MSK: mskDefault.replace(/\/$/, ''),
+      EKB: ekbDefault.replace(/\/$/, ''),
+    };
     this.token =
       config.get<string>('EXTERNAL_PRICE_TOKEN') ??
       '62e2c239-371b-4498-995e-f190a4965e81';
   }
 
-  async getBySku(sku: string): Promise<ExternalPriceResponse | null> {
+  async getBySku(
+    sku: string,
+    region: PriceRegion,
+  ): Promise<ExternalPriceResponse | null> {
     const response = await fetch(
-      `${this.baseUrl}/external-price?sku=${encodeURIComponent(sku)}`,
+      `${this.baseUrl(region)}/external-price?sku=${encodeURIComponent(sku)}`,
       {
         headers: this.headers(),
       },
@@ -50,8 +66,8 @@ export class ExternalPriceClient {
     return this.normalizeResponse(await response.json());
   }
 
-  async writePrice(productId: number, price: number) {
-    const response = await fetch(`${this.baseUrl}/external-price`, {
+  async writePrice(productId: number, price: number, region: PriceRegion) {
+    const response = await fetch(`${this.baseUrl(region)}/external-price`, {
       method: 'POST',
       headers: {
         ...this.headers(),
@@ -67,8 +83,8 @@ export class ExternalPriceClient {
     return this.normalizeResponse(await response.json());
   }
 
-  async deleteExcelPrices(): Promise<BlankPricesResponse> {
-    const response = await fetch(`${this.baseUrl}/external-price/blank`, {
+  async deleteExcelPrices(region: PriceRegion): Promise<BlankPricesResponse> {
+    const response = await fetch(`${this.baseUrl(region)}/external-price/blank`, {
       method: 'DELETE',
       headers: this.headers(),
     });
@@ -81,6 +97,10 @@ export class ExternalPriceClient {
     return {
       deletedCount: Number(data.deletedCount ?? 0),
     };
+  }
+
+  private baseUrl(region: PriceRegion) {
+    return this.baseUrls[region];
   }
 
   private headers() {

@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { PRICE_REGIONS } from '../common/price-region';
 
 export class CreateUploadDto {
   @IsString()
@@ -12,4 +13,9 @@ export class CreateUploadDto {
   @IsString()
   @IsNotEmpty()
   priceColumn: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(PRICE_REGIONS)
+  region: (typeof PRICE_REGIONS)[number];
 }

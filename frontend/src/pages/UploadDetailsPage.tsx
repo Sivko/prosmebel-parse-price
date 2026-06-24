@@ -2,21 +2,17 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button, Pagination, Table } from '@heroui/react'
 import { getUpload, startUpload, subscribeUpload } from '../lib/api'
+import type { UploadDetails } from '../types'
 import { currency, formatDate } from '../lib/format'
+import { getAdminBaseUrl, getRegionLabel } from '../lib/price-region'
 import { DataTable } from '../components/DataTable'
 import { Info } from '../components/Info'
 import { statusLabels } from '../components/statusLabels'
 
 const ITEMS_PER_PAGE = 20
 
-const ADMIN_BASE_URL = (
-  import.meta.env.VITE_EXTERNAL_PRICE_API_URL ??
-  import.meta.env.EXTERNAL_PRICE_API_URL ??
-  'https://prosmebel.limpopo113.ru'
-).replace(/\/+$/, '')
-
-function getAdminProductUrl(productId: number) {
-  return `${ADMIN_BASE_URL}/bitrix/admin/cat_product_edit.php?IBLOCK_ID=3&type=catalog&lang=ru&ID=${productId}`
+function getAdminProductUrl(productId: number, region: UploadDetails['region']) {
+  return `${getAdminBaseUrl(region)}/bitrix/admin/cat_product_edit.php?IBLOCK_ID=3&type=catalog&lang=ru&ID=${productId}`
 }
 
 function getPaginationPages(currentPage: number, totalPages: number) {
@@ -110,6 +106,7 @@ export function UploadDetailsPage({ token, path }: { token: string; path: string
         <Info label="Дата" value={formatDate(upload.createdAt)} />
         <Info label="Кто запустил" value={upload.createdByLogin} />
         <Info label="Страница" value={upload.sheetName} />
+        <Info label="Регион" value={`${getRegionLabel(upload.region)} (тип ${upload.priceTypeId})`} />
         <Info label="Статус" value={statusLabels[upload.status]} />
         <Info label="Артикулы" value={upload.totalArticles} />
         <Info label="Найдено" value={found} />
@@ -151,14 +148,14 @@ export function UploadDetailsPage({ token, path }: { token: string; path: string
               <Table.Cell>{item.errorMessage ? item.errorMessage : item.synced ? 'Записано' : item.found ? 'Готово к записи' : 'Ожидает проверки'}</Table.Cell>
               <Table.Cell>
                 {item.productId ? (
-                  <a className="button-link" target="_blank" rel="noreferrer" href={getAdminProductUrl(item.productId)}>
+                  <a className="button-link" target="_blank" rel="noreferrer" href={getAdminProductUrl(item.productId, upload.region)}>
                     Перейти
                   </a>
                 ) : (
                   '—'
                 )}
               </Table.Cell>
-              <Table.Cell><a target="_blank" rel="noreferrer" href={`/history?q=${encodeURIComponent(item.article)}`}>Открыть</a></Table.Cell>
+              <Table.Cell><a target="_blank" rel="noreferrer" href={`/history?q=${encodeURIComponent(item.article)}&region=${upload.region}`}>Открыть</a></Table.Cell>
             </Table.Row>
           ))}
         </Table.Body>

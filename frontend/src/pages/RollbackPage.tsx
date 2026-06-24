@@ -1,18 +1,22 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@heroui/react'
 import { rollbackExcelPrices } from '../lib/api'
+import { PRICE_REGION_CONFIG, PRICE_REGIONS, type PriceRegion } from '../lib/price-region'
 
 export function RollbackPage({ token }: { token: string }) {
   const queryClient = useQueryClient()
+  const [region, setRegion] = useState<PriceRegion>('MSK')
   const rollbackMutation = useMutation({
-    mutationFn: () => rollbackExcelPrices(token),
+    mutationFn: () => rollbackExcelPrices(token, region),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['history'] })
     },
   })
 
   const runRollback = () => {
-    if (!window.confirm('Вы действительно хотите удалить все записи цен, которые экспортировали через excel?')) {
+    const regionLabel = PRICE_REGION_CONFIG[region].label
+    if (!window.confirm(`Удалить все Excel-цены для региона «${regionLabel}» (тип ${PRICE_REGION_CONFIG[region].priceTypeId})?`)) {
       return
     }
 
@@ -31,8 +35,18 @@ export function RollbackPage({ token }: { token: string }) {
 
       <section className="rollback-panel">
         <p>
-          После восстановления работы 1С можно просто нажать кнопку, чтобы удалить все цены, которые были выгружены через excel - в этом случае будет работать "Старая логика" отображения цен.
+          После восстановления работы 1С можно удалить Excel-цены выбранного региона. Базовые цены Bitrix не изменяются.
         </p>
+        <label>
+          Регион
+          <select value={region} onChange={(event) => setRegion(event.target.value as PriceRegion)}>
+            {PRICE_REGIONS.map((item) => (
+              <option key={item} value={item}>
+                {PRICE_REGION_CONFIG[item].label} (тип {PRICE_REGION_CONFIG[item].priceTypeId})
+              </option>
+            ))}
+          </select>
+        </label>
         <Button className="primary" onPress={runRollback} isDisabled={rollbackMutation.isPending}>
           {rollbackMutation.isPending ? 'Удаляем...' : 'Запустить удаление'}
         </Button>

@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import type { PriceRegion } from '../common/price-region';
 
 export type UploadDocument = HydratedDocument<Upload>;
 
@@ -50,6 +51,12 @@ export class Upload {
 
   @Prop({ required: true })
   priceColumn: string;
+
+  @Prop({ required: true, enum: ['MSK', 'EKB'] })
+  region: PriceRegion;
+
+  @Prop({ required: true })
+  priceTypeId: number;
 
   @Prop({
     required: true,

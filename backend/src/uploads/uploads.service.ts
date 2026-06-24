@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as XLSX from 'xlsx';
+import { getPriceTypeId, PriceRegion } from '../common/price-region';
 import { PriceHistory, PriceHistoryDocument } from '../history/price-history.schema';
 import { ExternalPriceClient } from './external-price.client';
 import { Upload, UploadDocument, UploadItem } from './upload.schema';
@@ -62,7 +63,12 @@ export class UploadsService {
 
   async createFromFile(
     file: Express.Multer.File,
-    dto: { sheetName: string; articleColumn: string; priceColumn: string },
+    dto: {
+      sheetName: string;
+      articleColumn: string;
+      priceColumn: string;
+      region: PriceRegion;
+    },
     user: { userId: string; login: string },
   ) {
     const workbook = this.readWorkbook(file);
@@ -88,6 +94,8 @@ export class UploadsService {
       sheetName: dto.sheetName,
       articleColumn: dto.articleColumn,
       priceColumn: dto.priceColumn,
+      region: dto.region,
+      priceTypeId: getPriceTypeId(dto.region),
       status: 'preparing',
       totalArticles: items.length,
       syncedCount: 0,
@@ -174,11 +182,16 @@ export class UploadsService {
     return upload;
   }
 
-  async rollbackExcelPrices(user: { userId: string; login: string }) {
-    const result = await this.externalPriceClient.deleteExcelPrices();
+  async rollbackExcelPrices(
+    user: { userId: string; login: string },
+    region: PriceRegion,
+  ) {
+    const result = await this.externalPriceClient.deleteExcelPrices(region);
 
     await this.historyModel.create({
       action: 'rollback-excel-prices',
+      region,
+      priceTypeId: getPriceTypeId(region),
       deletedCount: result.deletedCount,
       createdBy: new Types.ObjectId(user.userId),
       createdByLogin: user.login,
